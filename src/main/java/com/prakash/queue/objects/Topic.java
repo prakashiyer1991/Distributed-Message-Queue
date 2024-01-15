@@ -14,7 +14,7 @@ import java.util.Queue;
 public class Topic {
 
     String name;
-    Queue<String> messages = new PriorityQueue<>();
+    Queue<Message> messages = new PriorityQueue<>();
     List<Consumer> consumers;
 
     public Topic(String topicName){
@@ -22,7 +22,7 @@ public class Topic {
         this.messages = new PriorityQueue<>();
     }
 
-    public void addMessage(String message){
+    public void addMessage(Message message){
         messages.add(message);
     }
 
@@ -30,8 +30,14 @@ public class Topic {
         consumers.add(consumer);
     }
 
-    public String removeMessage() {
-        return messages.poll();
+    public Message getMessageFor(String consumerId) {
+        for (Message message : messages) {
+            if (!message.isDispatchedTo(consumerId)) {
+                message.markAsDispatchedTo(consumerId);
+                return message;
+            }
+        }
+        return null;
     }
 
 

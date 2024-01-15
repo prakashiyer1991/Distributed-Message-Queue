@@ -15,7 +15,7 @@ public class Publisher {
 
     List<Topic> topics;
 
-    public void publish(Topic topic,String message){
+    public void publish(Topic topic,Message message){
         synchronized (topic) {
             topic.addMessage(message);
         }

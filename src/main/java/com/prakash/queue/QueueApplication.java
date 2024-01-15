@@ -1,10 +1,7 @@
 package com.prakash.queue;
 
 import ch.qos.logback.core.testUtil.RandomUtil;
-import com.prakash.queue.objects.Consumer;
-import com.prakash.queue.objects.Publisher;
-import com.prakash.queue.objects.Queue;
-import com.prakash.queue.objects.Topic;
+import com.prakash.queue.objects.*;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
@@ -45,21 +42,6 @@ public class QueueApplication {
 		queue.addPublisher(publisher);
 		queue.addPublisher(publisher1);
 
-		// Make producer1 publish message "Message 1" to topic1
-		publisher.publish(topic, "Message 1");
-
-		// Make producer1 publish message "Message 2" to topic1
-		publisher.publish(topic, "Message 2");
-
-		// Make producer2 publish message "Message 3" to topic1
-		publisher1.publish(topic, "Message 3");
-
-		// Make producer1 publish message "Message 4" to topic2
-		publisher1.publish(topic1, "Message 4");
-
-		// Make producer2 publish message "Message 5" to topic2
-		publisher1.publish(topic1, "Message 5");
-
 		// Create executor service with a fixed thread pool
 		ExecutorService executor = Executors.newFixedThreadPool(5);
 
@@ -78,17 +60,24 @@ public class QueueApplication {
 			// Each consumer is assigned a Runnable task to consistently look for published messages in subscribed topics
 			executor.submit(() -> {
 				while (true) {
-					for (Topic element : consumer.getTopics()) {
+					for (Topic element : consumer.getSubscribedTopics()) {
 						synchronized (element) {
-							String message = element.removeMessage();
+							Message message = element.getMessageFor(consumer.getId());
 							if (message != null) {
-								System.out.println(consumer.getId() + " received " + message);
+								System.out.println(consumer.getId() + " received " + message.getContent());
 							}
 						}
 					}
 				}
 			});
 		}
+
+		// Producers publish messages to topics
+		publisher.publish(topic, new Message("Message 1"));
+		publisher.publish(topic, new Message("Message 2"));
+		publisher1.publish(topic, new Message("Message 3"));
+		publisher.publish(topic1, new Message("Message 4"));
+		publisher1.publish(topic1, new Message("Message 5"));
 
 		//SpringApplication.run(QueueApplication.class, args);
 	}

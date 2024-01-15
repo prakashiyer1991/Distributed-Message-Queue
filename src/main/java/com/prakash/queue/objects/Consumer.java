@@ -15,11 +15,12 @@ public class Consumer {
     List<Topic> topics = new ArrayList<>();
 
     public void subscribe(Topic topic) {
-        synchronized (topic) {
-            String message = topic.removeMessage();
-            if (message != null) {
-                System.out.println(id + " received " + message);
-            }
-        }
+        this.topics.add(topic);
     }
+
+    // Returns the list of Topics this Consumer is subscribed to
+    public List<Topic> getSubscribedTopics() {
+        return this.topics;  // might want to return an unmodifiable copy IRL
+    }
+
 }
