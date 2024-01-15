@@ -11,6 +11,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import java.util.ArrayList;
 import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 @SpringBootApplication
 public class QueueApplication {
@@ -43,28 +45,6 @@ public class QueueApplication {
 		queue.addPublisher(publisher);
 		queue.addPublisher(publisher1);
 
-
-		//create consumers
-		Consumer consumer1 = new Consumer();
-		consumer1.setId(UUID.randomUUID().toString());
-		Consumer consumer2 = new Consumer();
-		consumer2.setId(UUID.randomUUID().toString());
-		Consumer consumer3 = new Consumer();
-		consumer3.setId(UUID.randomUUID().toString());
-		Consumer consumer4 = new Consumer();
-		consumer4.setId(UUID.randomUUID().toString());
-		Consumer consumer5 = new Consumer();
-		consumer5.setId(UUID.randomUUID().toString());
-
-
-		//add consumers to the queue
-		queue.addConsumer(consumer1);
-		queue.addConsumer(consumer2);
-		queue.addConsumer(consumer3);
-		queue.addConsumer(consumer4);
-		queue.addConsumer(consumer5);
-
-
 		// Make producer1 publish message "Message 1" to topic1
 		publisher.publish(topic, "Message 1");
 
@@ -80,19 +60,36 @@ public class QueueApplication {
 		// Make producer2 publish message "Message 5" to topic2
 		publisher1.publish(topic1, "Message 5");
 
-		consumer1.subscribe(topic);
-		consumer2.subscribe(topic);
-		consumer3.subscribe(topic);
-		consumer4.subscribe(topic);
-		consumer5.subscribe(topic);
+		// Create executor service with a fixed thread pool
+		ExecutorService executor = Executors.newFixedThreadPool(5);
 
-		// make 3 consumer from topic 2
-		consumer1.subscribe(topic1);
-		consumer3.subscribe(topic1);
-		consumer4.subscribe(topic1);
+		// Create Consumers with a new runnable task to read topics they are subscribed to
+		for (int i = 1; i <= 5; i++) {
+			final Consumer consumer = new Consumer();
+			consumer.setId("consumer" + i);
+			queue.addConsumer(consumer);
 
-		SpringApplication.run(QueueApplication.class, args);
+			// Consumers subscribe to topics
+			consumer.subscribe(topic);
+			if (i == 1 || i == 3 || i == 4) {
+				consumer.subscribe(topic1);
+			}
 
+			// Each consumer is assigned a Runnable task to consistently look for published messages in subscribed topics
+			executor.submit(() -> {
+				while (true) {
+					for (Topic element : consumer.getTopics()) {
+						synchronized (element) {
+							String message = element.removeMessage();
+							if (message != null) {
+								System.out.println(consumer.getId() + " received " + message);
+							}
+						}
+					}
+				}
+			});
+		}
+
+		//SpringApplication.run(QueueApplication.class, args);
 	}
-
 }
